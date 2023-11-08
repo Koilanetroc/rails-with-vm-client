@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - .:/rails
+    depends_on:
+      - "postgres"
+    ports:
+      - "3000:3000"
+    environment:
+      RAILS_ENV: "development"
+    networks:
+      - vm_net
+  postgres:
+    image: postgres:13.3-alpine
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./log:/root/log:cached
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+      interval: 5s
+    networks:
+      - vm_net
+  vmagent:
+    image: victoriametrics/vmagent:v1.94.0
+    depends_on:
+      - "victoriametrics"
+      - "web"
+    ports:
+      - 8429:8429
+    volumes:
+      - vmagent_data:/vmagentdata
+      - ./scrape_config.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--promscrape.config=/etc/prometheus/prometheus.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+    networks:
+      - vm_net
+    restart: always
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.94.0
+    ports:
+      - 8428:8428
+      - 8089:8089
+      - 8089:8089/udp
+      - 4242:4242
+    volumes:
+      - vm_data:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--opentsdbListenAddr=:4242"
+      - "-logNewSeries"
+    networks:
+      - vm_net
+    restart: always
+  grafana:
+    image: grafana/grafana:10.1.5
+    depends_on:
+      - "victoriametrics"
+    ports:
+      - 3001:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./provisioning/:/etc/grafana/provisioning/
+    networks:
+      - vm_net
+    restart: always
+volumes:
+  postgres:
+  vmagent_data: {}
+  vm_data: {}
+  grafana_data: {}
+networks:
+  vm_net:
