@@ -1,24 +1,20 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Example rails app with [VictoriaMetrics](https://github.com/VictoriaMetrics/VictoriaMetrics) and [vm-client](https://github.com/Koilanetroc/vm-client).  
 
-Things you may want to cover:
+Read the [full guide on Hackernoon](https://hackernoon.com/unleashing-vm-histograms-for-ruby-migrating-from-prometheus-to-victoriametrics-with-vm-client).
 
-* Ruby version
+# Setup
+To start the app run the following commands:
+- Start app with all deps  
+  `docker compose up`
+- Create and migrate db  
+  `docker compose exec web bin/rails db:create db:migrate`
+- Run rake task for generating metrics for a few minutes  
+  `docker compose exec web bundle exec rake load:generator`
+- Go to http://0.0.0.0:3000/metrics and check metrics collected by [vm-client](https://github.com/Koilanetroc/vm-client)
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+## Versions
+- Ruby 3.2.0
+- Rails 7.1.1
+- Docker version 20.10.23 
